@@ -1,7 +1,6 @@
 # Description: My personal virtual assistant program that responds to my questions
 # installed pipwin,gTTs,wikipedia,SpeechRecognition,pyAudio
-#Import libraries
-
+# Import libraries
 import speech_recognition as sr
 import os
 from gtts import gTTS
@@ -11,58 +10,68 @@ import warnings
 import calendar
 import random
 
-#Ignore warning messages inside our program
-
 warnings.filterwarnings('ignore')
-#function to record audio and return it as a string
+
+
+# function to record audio and return it as a string
+
 def recordAudio():
-
-    #Record the audio
-    r = sr.Recognizer() #Creating a Recognizer object
-    #Open the microphone and start recording
-
+    r = sr.Recognizer()
     with sr.Microphone() as source:
         print('Say Something!!!')
-        audio = r.listen(source, timeout=1, phrase_time_limit=10,)
+        try:
+            audio = r.listen(source, timeout=5, phrase_time_limit=10, )
+        except sr.WaitTimeoutError:
+            print('Did not hear any input, please speak again')
+            assistentResponse('Did not hear any input, please speak again')
+            return None  # To signify no successful audio capture
+        finally:
+            print('Done listening')
 
-    # Use Google Speech recognition
     data = ''
     try:
         data = r.recognize_google(audio)
         print('You said: ' + data)
     except sr.UnknownValueError:
         print('Google Speech could not understand the audio, unknown error')
-    except sr.RequestError as e :
-        print('Request results from Google Speech Recognition Service Error ' +  e)
-    return  data
+        assistentResponse('I did not understand that. Please try again.')
+    except sr.RequestError as e:
+        print('Request results from Google Speech Recognition Service Error ' + e)
+        assistentResponse('There was an error processing your request. Please try again.')
+
+    return data
+
 
 # A function to get the virtual assistant response
-
 def assistentResponse(text):
-    print(text)
-    #Convert text to speech
-    myObj = gTTS(text = text, lang = 'en', slow = False)
+    if not text.strip():
+        print("Empty response. Nothing to convert to audio.")
+        return
 
-    #Save the converted audion to a file
+    print(text)
+    # Convert text to speech
+    myObj = gTTS(text=text, lang='en', slow=False)
+    # Save the converted audio to a file
     myObj.save('assistant_response.mp3')
     # Play the converted file
-    os.system("start assistant_response.mp3")
+    os.system("afplay assistant_response.mp3")
+
 
 # A function get the AI started 'wake word'
 
 def wakeWord(text):
-    WAKE_WORDS = ['vivian', 'bobby']
+    WAKE_WORDS = ['zara']
 
-    text = text.lower() #Converting the text to all lower case words
+    text = text.lower()  # Converting the text to all lower case words
 
     # Check to see if the user command has a wake word or phrase
 
-
     for phrase in WAKE_WORDS:
         if phrase in text:
-            return  True
-    # If the wake word isnt found in the text from the loop it returns false
-    return  False
+            return True
+    # If the wake word isn't found in the text from the loop it returns false
+    return False
+
 
 # A function to get the current date
 
@@ -73,23 +82,24 @@ def getDate():
     month_num = now.month
     day_num = now.day
 
-    
-
-    #A list of months
-    month_names = ['January','February','March','April', 'May', 'June', 'July', 'August', 'September','October', 'November', 'December']
+    # A list of months
+    month_names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October',
+                   'November', 'December']
     # A list of Ordinal numbers
-    ordinal_numbers = ['1st', '2nd', '3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th','13th','14th','15th','16th','17th','18th',
-                       '19th','20th','21st','22nd','23rd','24th','25th','26th','27th','28th','29th','30th','31st']
+    ordinal_numbers = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th', '13th',
+                       '14th', '15th', '16th', '17th', '18th',
+                       '19th', '20th', '21st', '22nd', '23rd', '24th', '25th', '26th', '27th', '28th', '29th', '30th',
+                       '31st']
 
-    return 'Today is ' + weekday + ' ' + month_names[month_num - 5] + ' ' + 'the ' + ordinal_numbers[day_num -  5] + '.'
+    return 'Today is ' + weekday + ' ' + month_names[month_num - 5] + ' ' + 'the ' + ordinal_numbers[day_num - 5] + '.'
 
 
 def greeting(text):
-    #Greeting  inputs
-    GREETING_INPUTS = ['hi','how are you','wats up','how you dey', 'hello']
+    # Greeting  inputs
+    GREETING_INPUTS = ['hi', 'how are you', 'wats up', 'how you dey', 'hello']
 
-    #Greeting responses
-    GREETING_RESPONSES = ['howdy',"hope you're good",'wats good', 'hey there']
+    # Greeting responses
+    GREETING_RESPONSES = ['howdy', "hope you're good", 'wats good', 'hey there']
 
     # If the  users input is a greeting then return  a random greeting response
 
@@ -98,28 +108,37 @@ def greeting(text):
             return random.choice(GREETING_RESPONSES) + '.'
 
     # If no greeting was detected return an empty string
-    return  ' '
+    return ' '
+
 
 # A function to get a persons first and last name from the text
 def getPerson(text):
-    wordList = text.split() # Spliting the text into a list of words
+    wordList = text.split()  # Splitting the text into a list of words
 
-    for i in range(0, len(wordList)):
-        if i + 3 <= len(wordList) - 1 and  wordList [i].lower() == 'who' and wordList[i + 1].lower() == 'is':
-            return  wordList [i + 2] + ' ' +  wordList [i + 3]
+    if 'who is' in text:
+        startIndex = wordList.index('who') + 2
+    elif 'what is' in text:
+        startIndex = wordList.index('what') + 2
+    else:
+        return None
+
+    # Join words starting from startIndex till the end of the sentence
+    return ' '.join(wordList[startIndex:])
 
 
 while True:
     # Record Audio
     text = recordAudio()
+    if text is None:
+        continue
     response = ' '
 
     # Check for the wake word / phrase
-    if (wakeWord(text)== True):
-        #Check for greeting by the user
+    if (wakeWord(text) == True):
+        # Check for greeting by the user
         response = response + greeting(text)
 
-        #Check for date or month stuffs
+        # Check for date or month stuffs
         if ('date' in text):
             get_date = getDate()
             response = response + ' ' + get_date
@@ -132,21 +151,27 @@ while True:
                 hour = now.hour - 12
             else:
                 meridiem = 'a.m'
-            #Convert minute
+            # Convert minute
             if now.minute < 10:
-                minute =  '0' + str(now.minute)
+                minute = '0' + str(now.minute)
 
             else:
                 minute = str(now.minute)
 
             response = response + ' ' + 'It is' + str(hour) + ':' + minute + ' ' + meridiem + '.'
 
-
-        #Check to see if the user said 'who is'
-        if ('who is'|'what is' in text):
+        # Check to see if the user said 'who is'
+        # Check to see if the user said 'who is'
+        if 'who is' in text or 'what is' in text:
             person = getPerson(text)
-            wiki = wikipedia.summary(person, sentences=10)
-            response = response +  ' ' + wiki
+            try:
+                wiki = wikipedia.summary(person, sentences=2)
+                response = response + ' ' + wiki
+            except wikipedia.exceptions.DisambiguationError as e:
+                response = response + " There are multiple matches for your query. Please be more specific."
+            except wikipedia.exceptions.PageError as e:
+                response = response + " I couldn't find any information on that topic."
+            except Exception as e:
+                response = response + " Sorry, I faced an error while fetching the information."
 
-        #Have the assistant respond back using audio and text from response
-        assistentResponse(response)
+    assistentResponse(response.strip())
